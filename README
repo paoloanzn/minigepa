@@ -1,4 +1,4 @@
-Mini GEPA implementation https://arxiv.org/pdf/2507.19457 in under ~1000 lines of code.
+Mini GEPA implementation https://arxiv.org/pdf/2507.19457 in ~1000 lines of code.
 
 SETUP
 
@@ -7,21 +7,29 @@ SETUP
 
 CONFIGURATION
 
-  Create a .env file with your API keys. At least one is required:
+  Create a .env file with API keys for the providers you use:
 
     ANTHROPIC_OAUTH_TOKEN=...    (for Anthropic API, install claude code and run `claude setup-token`)
     OPENROUTER_API_KEY=...       (for OpenRouter API)
     OPENAI_API_KEY=...           (for OpenAI API)
 
-  Optional model overrides:
+  Defaults use Anthropic for the teacher model and OpenRouter for the student model:
 
     STUDENT_MODEL=...    model used for running the target prompt during optimization (default: nvidia/nemotron-3-nano-30b-a3b)
     TEACHER_MODEL=...    model used for dataset generation and grading (default: claude-haiku-4-5)
 
-  Prefix a model with a provider to override the default clients:
+  Prefix a model with a provider to override the default client:
 
     STUDENT_MODEL=openai:gpt-4.1
     TEACHER_MODEL=openrouter:<model-id>
+
+  Valid provider prefixes are anthropic, openrouter, and openai. If no prefix is provided,
+  STUDENT_MODEL uses OpenRouter and TEACHER_MODEL uses Anthropic.
+
+  Required keys depend on the command:
+
+    repl/generate     teacher provider key
+    evaluate/optimize teacher provider key and student provider key
 
 PROMPT FOLDER
 
@@ -32,22 +40,26 @@ PROMPT FOLDER
     grader_prompt.txt (or .md)   - evaluates model outputs, produces a 1-5 score and a feedback object
 
   Example: example-prompts/
-  See example-prompts/HOWTO.txt for detailed rules and a copy-paste prompt to generate valid prompts with any AI.
+  Use the files in example-prompts/ as the reference structure for new prompt folders.
 
 PROMPT CREATION REPL
 
-  Interactive tool to create dataset and grader prompts conversationally:
+  Interactive tool assistant for creating and editing minigepa prompt folders:
 
-    python repl.py                     # uses default .output folder
-    python repl.py my-prompts/         # custom output folder
+    python repl.py
+
+  The REPL uses the teacher client and can read, write, edit, search files, and run shell commands.
+  Ask it to inspect example-prompts/ first, then create or update target_prompt.txt,
+  dataset_prompt.txt, and grader_prompt.txt in your prompt folder.
 
   Commands inside the REPL:
-    /q                     quit
-    /s <folder>            change output folder
-    /save dataset          save last generated dataset prompt
-    /save grader           save last generated grader prompt
+    /q, quit, exit          quit
+    /c                     clear the conversation
 
-  Describe your task, refine through conversation, then save.
+  You can also ask it to run CLI commands directly, for example:
+    .venv/bin/python cli.py generate --prompts my-prompts
+    .venv/bin/python cli.py evaluate --prompts my-prompts --dataset .output/dataset-abc123.json
+    .venv/bin/python cli.py optimize --prompts my-prompts --budget 120
 
 USAGE
 
@@ -62,19 +74,19 @@ Commands:
 Examples:
 
   Generate a dataset:
-    python cli.py generate
+    python cli.py generate --prompts example-prompts --output .output
 
   Evaluate a prompt (generates dataset automatically):
-    python cli.py evaluate
+    python cli.py evaluate --prompts example-prompts --output .output
 
   Evaluate using an existing dataset:
-    python cli.py evaluate --dataset .output/dataset-abc123.json
+    python cli.py evaluate --prompts example-prompts --output .output --dataset .output/dataset-abc123.json
 
   Run GEPA optimization (default budget: 120):
-    python cli.py optimize
+    python cli.py optimize --prompts example-prompts --output .output
 
   Run with custom settings and a pre-existing dataset:
-    python cli.py optimize --dataset .output/dataset-abc123.json --budget 300 --minibatch 6
+    python cli.py optimize --prompts example-prompts --output .output --dataset .output/dataset-abc123.json --budget 300 --minibatch 6 --pareto-ratio 0.4
 
 Flags:
 
